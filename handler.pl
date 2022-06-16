@@ -9,6 +9,7 @@ use warnings;
 
 use CGI qw(-debug);
 use Digest::SHA qw(hmac_sha256_hex);
+use feature qw(say);
 
 print "Content-type: text/plain\n\n";
 
@@ -39,6 +40,7 @@ if (my $data = $q->param('POSTDATA')) {
     system("git", "pull");
     my @files = glob("*.gpkg");
     my @cmd = ("geoserver-sync", "--user", "admin", "--workspace", "ehri", @files);
+    say join(" ", @cmd);
     if (system(@cmd)) {
         die "Sync script exited with non-zero code: $!\n";
     }
