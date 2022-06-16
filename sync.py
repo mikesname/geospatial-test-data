@@ -122,7 +122,8 @@ class Importer:
 
         logger.debug(f"{method}ing {url} layer {identifier}: {data}")
         r = self.session.request(method, url, data=json.dumps(data))
-        r.raise_for_status()
+        if r.status_code not in [HTTPStatus.OK, HTTPStatus.CREATED]:
+            raise ImportException(f"Unexpected import status code: {r.status_code} ({method} {url})")
         return identifier in layers
 
 
