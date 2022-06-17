@@ -73,7 +73,12 @@ class Importer:
 
         if r.status_code == HTTPStatus.NOT_FOUND:
             raise ImportException(f"Cannot list workspace datastores. Does workspace '{self.args.workspace}' exist?")
-        stores = [s["name"] for s in r.json()["dataStores"]["dataStore"]]
+        stores = []
+        try:
+            stores = [s["name"] for s in r.json()["dataStores"]["dataStore"]]
+        except AttributeError:
+            # no stores
+            pass
 
         url = list_url
         method = "POST"
@@ -107,6 +112,7 @@ class Importer:
         try:
             layers = [data["name"] for data in r.json().get("featureTypes", {}).get("featureType", [])]
         except AttributeError:
+            # no layers
             pass
 
         url = list_url
