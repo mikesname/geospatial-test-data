@@ -5,6 +5,7 @@
 #
 
 import argparse
+import glob
 import os
 import sys
 
@@ -31,7 +32,15 @@ class Importer:
         self.base_url = f"http://{args.host}:{args.port}/geoserver/rest/workspaces/{args.workspace}"
 
     def sync(self) -> None:
-        for filepath in self.args.files:
+        if not self.args.pattern or self.args.files:
+            raise ImportException("No files or search pattern supplied")
+        files = []
+        if self.args.pattern:
+            for d, _, _ in os.walk(os.getcwd()):
+                files.extend(glob.glob(os.path.join(d, self.args.pattern)))
+        else:
+            files = self.args.files
+        for filepath in files:
             self.sync_file(filepath)
 
     def sync_file(self, filepath: str) -> None:
@@ -137,6 +146,7 @@ if __name__ == "__main__":
     parser.add_argument("-u", "--user", dest="user", help="Geoserver user")
     parser.add_argument("-p", "--port", dest="port", default=8080, help="Geoserver port")
     parser.add_argument("-w", "--workspace", dest="workspace", help="Geoserver workspace")
+    parser.add_argument("--pattern", dest="pattern", help="File pattern to find from CWD")
     parser.add_argument("--debug", dest="debug", action="store_true", help="Show debug info")
     parser.add_argument('files', nargs='*', help="One or more GeoPackage files")
 

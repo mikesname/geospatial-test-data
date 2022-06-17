@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-import glob
 import hashlib
 import hmac
 import os
 import sys
-
 
 secret = os.environ.get("SECRET", "")
 sync_dir = os.environ.get("SYNC_DIR")
@@ -23,7 +21,6 @@ else:
     print("Content-type: text/plain", end="\r\n\r\n", flush=True)
     os.chdir(sync_dir)
     os.system("git pull")
-    files = " ".join(glob.glob("*.gpkg"))
-    cmd = "geoserver-sync --user admin --workspace ehri " + files
+    cmd = "geoserver-sync --user admin --workspace ehri --pattern '*.gpkg'"
     if os.system(cmd) != 0:
         raise Exception(f"Command '{cmd}' exited with non-zero code")
