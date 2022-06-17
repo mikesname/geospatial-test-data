@@ -76,7 +76,7 @@ class Importer:
         stores = []
         try:
             stores = [s["name"] for s in r.json()["dataStores"]["dataStore"]]
-        except AttributeError:
+        except (AttributeError, TypeError):
             # no stores
             pass
 
