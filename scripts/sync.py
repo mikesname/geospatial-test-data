@@ -32,7 +32,7 @@ class Importer:
         self.base_url = f"http://{args.host}:{args.port}/geoserver/rest/workspaces/{args.workspace}"
 
     def sync(self) -> None:
-        if not self.args.pattern or self.args.files:
+        if not self.args.pattern and not self.args.files:
             raise ImportException("No files or search pattern supplied")
         files = []
         if self.args.pattern:
