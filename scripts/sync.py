@@ -148,7 +148,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         usage="%(prog)s [OPTION] [FILE]...",
         description="""Import GeoPackage layers into a local Geoserver instance.\n
-        The password for Geoserver must be given via a GEOSERVER_PASSWORD environment variable."""
+        The password for Geoserver must be given via a GEOSERVER_PASSWORD environment variable.
+        The -c|--config option accepts the path to an ini-style config file containing a [sync] section."""
     )
     parser.add_argument("--host", dest="host", default="localhost", help="Geoserver host")
     parser.add_argument("-u", "--user", dest="user", default="admin", help="Geoserver user")
@@ -169,6 +170,8 @@ if __name__ == "__main__":
         'port': str(args.port),
         'pass': os.environ.get("GEOSERVER_PASSWORD", "")
     })
+    config.add_section('sync')
+
     if args.config:
         config.read(args.config)
 
@@ -176,7 +179,7 @@ if __name__ == "__main__":
     if args.debug:
         logger.setLevel(logging.DEBUG)
 
-    importer = Importer(config['DEFAULT'], args.files)
+    importer = Importer(config['sync'], args.files)
     try:
         importer.sync()
     except ImportException as e:
