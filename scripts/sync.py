@@ -36,15 +36,14 @@ class Importer:
     def sync(self) -> None:
         if not self.config.get('pattern') and not self.files:
             raise ImportException("No files or search pattern supplied")
-        files = []
 
         if not os.path.isdir(self.config.get('dir')):
             raise ImportException(f"Invalid directory supplied: {self.config.get('dir')}")
-        if self.config.get('pattern'):
+
+        files = self.files
+        if not files:
             for d, _, _ in os.walk(os.path.abspath(self.config.get('dir'))):
                 files.extend(glob.glob(os.path.join(d, self.config.get('pattern'))))
-        else:
-            files = self.files
         for filepath in files:
             self.sync_file(filepath)
 
