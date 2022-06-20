@@ -5,6 +5,7 @@
 #
 
 import argparse
+from configparser import ConfigParser
 import glob
 import os
 import sys
@@ -23,23 +24,24 @@ class ImportException(Exception):
 
 
 class Importer:
-    def __init__(self, args):
-        self.args = args
+    def __init__(self, config, files):
+        self.config = config
+        self.files = files
 
         self.session = requests.Session()
-        self.session.auth = (args.user, os.environ["GEOSERVER_PASSWORD"])
+        self.session.auth = (config.get('user'), config.get('pass'))
         self.session.headers.update({"content-type": "application/json", "accept": "application/json"})
-        self.base_url = f"http://{args.host}:{args.port}/geoserver/rest/workspaces/{args.workspace}"
+        self.base_url = f"http://{config.get('host')}:{config.get('port')}/geoserver/rest/workspaces/{config.get('workspace')}"
 
     def sync(self) -> None:
-        if not self.args.pattern and not self.args.files:
+        if not self.config.get('pattern') and not self.files:
             raise ImportException("No files or search pattern supplied")
         files = []
-        if self.args.pattern:
+        if self.config.get('pattern'):
             for d, _, _ in os.walk(os.getcwd()):
-                files.extend(glob.glob(os.path.join(d, self.args.pattern)))
+                files.extend(glob.glob(os.path.join(d, self.config.get('pattern'))))
         else:
-            files = self.args.files
+            files = self.files
         for filepath in files:
             self.sync_file(filepath)
 
@@ -72,7 +74,7 @@ class Importer:
         r = self.session.get(list_url)
 
         if r.status_code == HTTPStatus.NOT_FOUND:
-            raise ImportException(f"Cannot list workspace datastores. Does workspace '{self.args.workspace}' exist?")
+            raise ImportException(f"Cannot list workspace datastores. Does workspace '{self.config.get('workspace')}' exist?")
         stores = []
         try:
             stores = [s["name"] for s in r.json()["dataStores"]["dataStore"]]
@@ -126,7 +128,7 @@ class Importer:
                 name=identifier,
                 nativeName=identifier,
                 namespace=dict(
-                    name=self.args.workspace,
+                    name=self.config.get('workspace'),
                     href=f"{self.base_url}.json"
                 ),
                 title=title,
@@ -149,20 +151,32 @@ if __name__ == "__main__":
         The password for Geoserver must be given via a GEOSERVER_PASSWORD environment variable."""
     )
     parser.add_argument("--host", dest="host", default="localhost", help="Geoserver host")
-    parser.add_argument("-u", "--user", dest="user", help="Geoserver user")
+    parser.add_argument("-u", "--user", dest="user", default="admin", help="Geoserver user")
     parser.add_argument("-p", "--port", dest="port", default=8080, help="Geoserver port")
-    parser.add_argument("-w", "--workspace", dest="workspace", help="Geoserver workspace")
-    parser.add_argument("--pattern", dest="pattern", help="File pattern to find from CWD")
+    parser.add_argument("-w", "--workspace", dest="workspace", default="TEST", help="Geoserver workspace")
+    parser.add_argument("-c", "--config", dest="config", help="optional config file")
+    parser.add_argument("--pattern", dest="pattern", default="", help="File pattern to find from CWD")
     parser.add_argument("--debug", dest="debug", action="store_true", help="Show debug info")
     parser.add_argument('files', nargs='*', help="One or more GeoPackage files")
 
     args = parser.parse_args()
 
+    config = ConfigParser(defaults={
+        'workspace': args.workspace,
+        'host': args.host,
+        'user': args.user,
+        'pattern': args.pattern,
+        'port': str(args.port),
+        'pass': os.environ.get("GEOSERVER_PASSWORD", "")
+    })
+    if args.config:
+        config.read(args.config)
+
     logging.basicConfig(level=logging.WARNING)
     if args.debug:
         logger.setLevel(logging.DEBUG)
 
-    importer = Importer(args)
+    importer = Importer(config['DEFAULT'], args.files)
     try:
         importer.sync()
     except ImportException as e:
