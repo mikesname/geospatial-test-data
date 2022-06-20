@@ -37,8 +37,11 @@ class Importer:
         if not self.config.get('pattern') and not self.files:
             raise ImportException("No files or search pattern supplied")
         files = []
+
+        if not os.path.isdir(self.config.get('dir')):
+            raise ImportException(f"Invalid directory supplied: {self.config.get('dir')}")
         if self.config.get('pattern'):
-            for d, _, _ in os.walk(os.getcwd()):
+            for d, _, _ in os.walk(os.path.abspath(self.config.get('dir'))):
                 files.extend(glob.glob(os.path.join(d, self.config.get('pattern'))))
         else:
             files = self.files
@@ -156,7 +159,8 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--port", dest="port", default=8080, help="Geoserver port")
     parser.add_argument("-w", "--workspace", dest="workspace", default="TEST", help="Geoserver workspace")
     parser.add_argument("-c", "--config", dest="config", help="optional config file")
-    parser.add_argument("--pattern", dest="pattern", default="", help="File pattern to find from CWD")
+    parser.add_argument("-d", "--dir", dest="dir", default=os.getcwd(), help="directory under which to apply pattern")
+    parser.add_argument("--pattern", dest="pattern", default="", help="File pattern to find from dir (or CWD)")
     parser.add_argument("--debug", dest="debug", action="store_true", help="Show debug info")
     parser.add_argument('files', nargs='*', help="One or more GeoPackage files")
 
@@ -166,6 +170,7 @@ if __name__ == "__main__":
         'workspace': args.workspace,
         'host': args.host,
         'user': args.user,
+        'dir': args.dir,
         'pattern': args.pattern,
         'port': str(args.port),
         'pass': os.environ.get("GEOSERVER_PASSWORD", "")
